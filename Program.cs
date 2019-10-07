@@ -42,7 +42,6 @@ namespace ConsoleNonNumeric
     {
         static void Main(string[] args)
         {
-
             TextInput input = new NumericInput();
             input.Add('1');
             input.Add('a');
