@@ -338,3 +338,8 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+
+# KMSS project: frontend build output and local env files
+frontend/dist/
+**/.env
+**/.env.local
