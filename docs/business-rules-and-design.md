@@ -80,6 +80,79 @@ example, that:
    sales, and other income on the receipts side; wages, stationery, and
    "సాధర" (misc) on the expenditure side, alongside loan disbursement/collection.
 
+### 1.1 Second batch: the master monthly roster (all 60 members, one sheet)
+
+A further 5 photos show a different page type: **"మొత్త సభ్యుల వసూళ్లు చేసిన
+క్యాష్ రిపోర్ట్"** (total members' collections cash report) — one two-page
+spread per month, every member (rows 1–60) in one table, columns: share,
+loan taken (if any, this month), ordinary-loan principal/interest, special-loan
+principal/interest, fine, a page-wide reference total, amount paid, remaining
+loan. Three months are visible: నెల (month) 02, 03, and 04 of 2026. This is
+the roster the admin fills in *during* the monthly meeting, one row per
+member, before transcribing each member's activity onto their individual
+khata page (§1's per-member pages).
+
+**Further cross-checks, independent of §1's sample:**
+
+- **Member "పోశాల శ్రీనివాస్ స్వ.బాలరాజు" (row 55), tracked across all three
+  visible months**, confirms the 1%-of-prior-outstanding rule again, on a
+  third loan, independently of the two already verified in §1:
+
+  | Month | Opening | Interest (1%) | Principal | Closing |
+  |---|---|---|---|---|
+  | 02 | 50,000 (disbursed this month) | — | — | 50,000 |
+  | 03 | 50,000 | 500 | 2,000 | 48,000 |
+  | 04 | 48,000 | 480 | 2,000 | 46,000 |
+
+  Every value matches the ledger exactly. Combined with §1's two cases, the
+  interest rule now has three independent, ledger-verified confirmations.
+- **Every row's total-paid column is exactly `share + ordinary principal +
+  ordinary interest + special principal + special interest + fine`** — e.g.
+  row 1 (month 04): 200 + 1,000 + 110 = 1,310 ✓; row 6: 200 + 1,000 + 270 =
+  1,470 ✓. This is the formula the API must reproduce for "amount collected
+  this visit" everywhere a payment is recorded.
+- **Loan sizes vary widely and are not capped at a round number**: the three
+  sampled months alone show disbursements of ₹11,000(-ish, inferred),
+  ₹25,000, ₹27,000, ₹40,000, ₹49,000, and ₹50,000 to different members. This
+  weakens the idea of a fixed maximum loan amount, though it doesn't rule out
+  an eligibility *formula* (e.g., tied to tenure or contributions) — still an
+  open question in §4.
+- **Multiple members received loans in the same month**, repeatedly, across
+  all three sampled months (e.g. 2 members in month 02, 2 in month 03, 4 in
+  month 04). This settles one open question from the original brief: **yes,
+  the Sangam routinely disburses more than one loan per monthly meeting** —
+  the system must not assume one-loan-per-month.
+- **A member can apparently be marked inactive/exited**, and the marking
+  gets progressively more explicit over time: member row 41 ("పోశాల
+  కిరణ్‌కుమార్") is a blank line with no entries in month 02, gains a single
+  red "X" in month 03, and is marked with an "X" in *every* column in month
+  04. This looks like a deliberate exit/hold workflow distinct from simply
+  "missed a payment" (which elsewhere just leaves that month's cells blank
+  while the member's row continues normally) — worth asking the admin
+  directly whether this is a formal "member exited/suspended" status that
+  the system should model explicitly (e.g. a third `MemberStatus` beyond
+  active/inactive, with a recorded reason and date), rather than reusing the
+  plain `IsActive` flag already in the schema.
+- **A numeric discrepancy worth flagging, not resolving by guesswork**: this
+  roster's month-04 page-wide reference total is **₹11,800** (consistent
+  with 59 members × ₹200), but the separately-photographed receipts &
+  payments statement for the same "month 04" (§1, dated 11-04-2026) declares
+  Shares of **₹12,400** (62 × ₹200). Both numbers check out internally
+  against their own page, but they don't reconcile against each other. This
+  roster only lists khata numbers 1–60, so it may simply be missing a
+  continuation page (61–62) — but that's a guess. **This needs the admin to
+  confirm**: is "నెల: 04" always literally April, are these two documents
+  really the same month, and is 60 or 62 the true current member count?
+  Don't build a hard-coded member count anywhere in the system regardless —
+  this is exactly the kind of number that must always be a live count, never
+  a constant.
+- Several members carry a parenthetical designation after their name
+  (రిటైర్డ్ = retired, పి.సి. = police constable, ఎం.ఇ.ఓ = Mandal Education
+  Officer, సి.ఐ. = circle inspector, and similar). This looks like personal
+  context the admin finds useful for identification, not a business rule —
+  worth an optional free-text "notes/designation" field on `Member`, not a
+  structured one.
+
 ---
 
 ## 2. Decisions already made (this session)
@@ -194,11 +267,17 @@ these is a `TODO(business-rule)` in the codebase once logic is written.
 - Can ₹200 change over time (and if so, per-member or Sangam-wide, effective from which month)?
 - What happens when a member misses a month — does it accumulate as arrears, and is there a penalty?
 - Mid-year joiners/leavers — prorated first month, or skipped?
+- The master roster (§1.1) shows a member's row transition from blank →
+  single "X" → "X" across every column over three consecutive months. Is
+  this a formal exit/suspension workflow the system should model as a third
+  `MemberStatus` (with a reason and effective date), or something looser the
+  admin just marks freehand and the system doesn't need to represent?
 
 **Loans**
 - Who approves a loan (is "recorded by admin" sufficient, or is there a separate approval step/status)?
-- Is there a maximum loan amount or an eligibility formula (e.g., multiple of contributions paid)?
+- Is there a maximum loan amount or an eligibility formula (e.g., multiple of contributions paid)? Confirmed *not* a fixed round-number cap — the master roster (§1.1) shows disbursements from ~₹11,000 up to ₹50,000 to different members within a few months of each other.
 - Can a member hold more than one **active** loan at once, across either loan type? (Sampled data shows sequential, not concurrent, loans for one member — but that's one member, not a rule.)
+- Confirmed: **multiple members routinely receive loans in the same monthly meeting** (§1.1 shows 2–4 per month across three sampled months) — the system must support batch-disbursing several loans per period, not just one.
 - Can loans be disbursed any day, or only at the monthly (11th) meeting?
 - Early payoff — is there a discount/rule, or just "pay remaining principal + that month's interest"?
 
